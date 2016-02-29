@@ -9,6 +9,12 @@ import java.util.UUID;
 
 public class Core
 {
+	public static void init(Context context, String host, int dbStructureNumber)
+	{
+		setHost(context, host);
+		setDBStructureNumber(context, dbStructureNumber);
+	}
+
 	public static String getUUID(Context context)
 	{
 		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);

@@ -9,12 +9,12 @@ public class ContentProvider extends android.content.ContentProvider
 	public static final String AUTHORITY = "de.coding.mirror.ContentProvider";
 	public static final String CONTENT_URI_STRING = "content://" + AUTHORITY;
 	public static final Uri CONTENT_URI = Uri.parse(CONTENT_URI_STRING);
-	DB db;
 
 	@Override
 	public Uri insert(Uri uri, ContentValues contentValues)
 	{
 		String table = uri.getPath().substring(1);
+		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber(getApplicationContext()));
 		long id = db.insert(table, contentValues);
 		getContext().getContentResolver().notifyChange(Uri.parse(uri.toString() + "/" + id), null);
 		return CONTENT_URI.buildUpon().appendPath(table).appendPath(id + "").build();
