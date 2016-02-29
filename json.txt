@@ -1,0 +1,79 @@
+send
+{
+	"app": "de.coding.track",
+	"hash": "42424242",
+	"uuid": "0x123657412534",
+	"content": [
+		{
+			"insert": [
+				{
+					"SETTINGSW": [
+						{
+							"_id": 1,
+							"_version": 42
+							"REFRESHRATE": 1000
+						}
+					]
+				}
+			]
+		},
+		{
+			"delete": [
+				{
+					"SETTINGSW": [
+							{
+								"_id": 1,
+								"_version": 42
+							}
+						]
+				}
+			]
+		}
+	]
+}
+
+receive
+{
+	"content": [
+		{
+			"insert": [
+				{
+					"SETTINGSW": [
+						{
+							"_id": 1,
+							"_version": 42
+							"REFRESHRATE": 1000
+						}
+					]
+				}
+			]
+		},
+		{
+			"delete": [
+				{
+					"SETTINGSW": [
+						{
+							"_id": 1,
+							"_version": 42
+						}
+					]
+				}
+			]
+		},
+	]
+}
+
+ack
+{
+	"uuid": "0x123657412534",
+	"content": [
+		{
+			"SETTINGSW": [
+				{
+					"_id": 1,
+					"_version": 42
+				}
+			]
+		}
+	]
+}

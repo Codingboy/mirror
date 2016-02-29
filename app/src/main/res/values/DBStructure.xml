@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="DBStructure">
+        <item>SETTINGSW_CS</item>
+        <item>SETTINGSW_REFRESHRATE_INTEGER</item>
+        <item>SETTINGSR_SC</item>
+        <item>SETTINGSR_REFRESHRATE_INTEGER</item>
+    </string-array>
+</resources>
