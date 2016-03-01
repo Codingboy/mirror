@@ -1,9 +1,12 @@
-package de.coding.mirror;
+package de.coding.track;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import de.coding.mirror.Core;
+import de.coding.mirror.R;
 
 
 public class MainActivity extends Activity
@@ -14,6 +17,7 @@ public class MainActivity extends Activity
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		Core.init(getApplicationContext(), "http://192.168.2.105:8080/", R.array.DBStructure);
 	}
 
 

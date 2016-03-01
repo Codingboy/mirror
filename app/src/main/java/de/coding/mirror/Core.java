@@ -9,7 +9,13 @@ import java.util.UUID;
 
 public class Core
 {
-	public static String getUUID(Context context)
+	public static void init(Context context, String host, int dbStructureNumber)
+	{
+		setHost(context, host);
+		setDBStructureNumber(context, dbStructureNumber);
+	}
+
+	static String getUUID(Context context)
 	{
 		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
 		if (storage.contains("uuid"))
@@ -32,13 +38,13 @@ public class Core
 		}
 	}
 
-	public static String getHost(Context context)
+	static String getHost(Context context)
 	{
 		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
 		return storage.getString("host", "42");
 	}
 
-	public static void setHost(Context context, String host)
+	static void setHost(Context context, String host)
 	{
 		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
 		SharedPreferences.Editor editor = storage.edit();
@@ -46,13 +52,13 @@ public class Core
 		editor.apply();
 	}
 
-	public static int getDBStructureNumber(Context context)
+	static int getDBStructureNumber(Context context)
 	{
 		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
 		return storage.getInt("dbStructureNumber", 42);
 	}
 
-	public static void setDBStructureNumber(Context context, int dbStructureNumber)
+	static void setDBStructureNumber(Context context, int dbStructureNumber)
 	{
 		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
 		SharedPreferences.Editor editor = storage.edit();

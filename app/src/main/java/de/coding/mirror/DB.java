@@ -5,7 +5,21 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.JsonWriter;
 import android.util.Log;
+
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.lang.LinkageError;
+import java.lang.String;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import de.coding.mirror.dbstructure.ColumnStructure;
 import de.coding.mirror.dbstructure.DBStructure;
@@ -220,9 +234,12 @@ public class DB extends SQLiteOpenHelper
 		return sqLiteDatabase.query(table, projection, selection, selectionArgs, null, null, sortOrder);
 	}
 
-	public void mirror()
+	public void mirror(Context context)
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
+		List<Map<String, List<Map<String, List<String>>>>> content = new LinkedList<>();
+		String prevMode = "";
+		String prevTable = "";
 		while (true)
 		{
 			Cursor cursor = sqLiteDatabase.query("_queue", null, null, null, null, null, "timestamp ASC");
@@ -232,9 +249,118 @@ public class DB extends SQLiteOpenHelper
 				break;
 			}
 			cursor.moveToFirst();
-			//TODO
+			String mode = cursor.getString(cursor.getColumnIndex("mode"));
+			String table = cursor.getString(cursor.getColumnIndex("table"));
+			String data = cursor.getString(cursor.getColumnIndex("data"));
+			int id = cursor.getInt(cursor.getColumnIndex("id"));//TODO
 			cursor.close();
+			if (prevMode.equals(mode))
+			{
+				Map<String, List<Map<String, List<String>>>> modeMap = content.get(content.size() - 1);
+				List<Map<String, List<String>>> tableList = modeMap.get(mode);
+				if (prevTable.equals(table))
+				{
+					Map<String, List<String>> tableMap = tableList.get(tableList.size()-1);
+					List<String> dataList = tableMap.get(table);
+					dataList.add(data);
+					tableMap.put(table, dataList);
+				}
+				else
+				{
+					Map<String, List<String>> tableMap = new HashMap<>();
+					List<String> dataList = new LinkedList<>();
+					dataList.add(data);
+					tableMap.put(table, dataList);
+					tableList.add(tableMap);
+				}
+			}
+			else
+			{
+				Map<String, List<Map<String, List<String>>>> modeMap = new HashMap<>();
+				List<Map<String, List<String>>> tableList = new LinkedList<>();
+				Map<String, List<String>> tableMap = new HashMap<>();
+				List<String> dataList = new LinkedList<>();
+				dataList.add(data);
+				tableMap.put(table, dataList);
+				tableList.add(tableMap);
+				modeMap.put(mode, tableList);
+				content.add(modeMap);
+			}
+			prevMode = mode;
+			prevTable = table;
 		}
-
+		if (content.size() > 0)
+		{
+			try
+			{
+				OutputStream out = new ByteArrayOutputStream();
+				JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));
+				writer.beginObject();
+				writer.name("uuid").value(Core.getUUID(context));
+				writer.name("content");
+				writer.beginArray();
+				for (Map<String, List<Map<String, List<String>>>> map : content)
+				{
+					writer.beginObject();
+					List<Map<String, List<String>>> list;
+					if (map.containsKey("insert"))
+					{
+						writer.name("insert");
+						list = map.get("insert");
+					}
+					else
+					{
+						writer.name("delete");
+						list = map.get("delete");
+					}
+					writer.beginArray();
+					for (Map<String, List<String>> map1 : list)
+					{
+						writer.beginObject();
+						for (String table : map1.keySet())
+						{
+							writer.name(table);
+							writer.beginArray();
+							List<String> dataList = map1.get(table);
+							for (String data : dataList)
+							{
+								JSONObject jsonObject = new JSONObject(data);
+								writer.beginObject();
+								Iterator<String> iterator = jsonObject.keys();
+								while (iterator.hasNext())
+								{
+									String key = iterator.next();
+									Object object = jsonObject.get(key);
+									if (object instanceof String)
+									{
+										writer.name(key).value((String) object);
+									}
+									else if (object instanceof Integer)
+									{
+										writer.name(key).value((Integer) object);
+									}
+								}
+								writer.endObject();
+							}
+							writer.endArray();
+						}
+						writer.endObject();
+					}
+					writer.endArray();
+					writer.endObject();
+				}
+				writer.endArray();
+				writer.endObject();
+				writer.close();
+				String json = out.toString();
+				String host = Core.getHost(context);
+				NetworkCommunication.send(host, json);
+				//TODO change status
+			}
+			catch (Exception e)
+			{
+				Log.e("Mirror", "error while mirroring", e);
+			}
+		}
 	}
 }

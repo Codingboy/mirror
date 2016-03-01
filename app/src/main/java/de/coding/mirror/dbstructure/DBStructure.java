@@ -82,11 +82,12 @@ public class DBStructure
 				columnStructure.type = "INTEGER";
 				columnStructure.name = "_version";
 				tableStructure.columns.add(columnStructure);
+				columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
 				columnStructure.name = "_status";
 				tableStructure.columns.add(columnStructure);
 			}
-			if (tableStructure.mode.equals("SC"))
+			else if (tableStructure.mode.equals("SC"))
 			{
 				ColumnStructure columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
@@ -97,7 +98,7 @@ public class DBStructure
 				columnStructure.name = "_version";
 				tableStructure.columns.add(columnStructure);
 			}
-			if (tableStructure.mode.equals("L"))
+			else if (tableStructure.mode.equals("L"))
 			{
 				ColumnStructure columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
