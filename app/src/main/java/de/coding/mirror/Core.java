@@ -1,18 +1,41 @@
 package de.coding.mirror;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.provider.ContactsContract;
+import android.util.Log;
 
 import java.util.UUID;
 
 public class Core
 {
-	public static void init(Context context, String host, int dbStructureNumber)
+	public static void init(Context context, String host, int dbStructureNumber, int delay)
 	{
 		setHost(context, host);
 		setDBStructureNumber(context, dbStructureNumber);
+		setDelay(context, delay);
+		Log.i("Mirror", getUUID(context));
+		context.startService(new Intent(context, MirrorService.class));
+		context.registerReceiver(new BroadcastReceiver()
+		{
+			@Override
+			public void onReceive(Context context, Intent intent)
+			{
+				ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+				NetworkInfo netInfo = cm.getActiveNetworkInfo();
+				if (netInfo != null && netInfo.isConnected())
+				{
+					Log.d("Mirror", "mirroring due to network connect");
+					DB.getInstance(context, Core.getDBStructureNumber(context)).mirror(context, true);
+				}
+			}
+		}, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
 	}
 
 	static String getUUID(Context context)
@@ -63,6 +86,29 @@ public class Core
 		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
 		SharedPreferences.Editor editor = storage.edit();
 		editor.putInt("dbStructureNumber", dbStructureNumber);
+		editor.apply();
+	}
+
+	public static void onStart(Context context)
+	{
+	}
+
+	public static void onStop(Context context)
+	{
+
+	}
+
+	public static long getDelay(Context context)
+	{
+		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
+		return storage.getLong("delay", 42);
+	}
+
+	static void setDelay(Context context, int delay)
+	{
+		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
+		SharedPreferences.Editor editor = storage.edit();
+		editor.putLong("delay", delay);
 		editor.apply();
 	}
 }

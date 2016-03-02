@@ -9,6 +9,10 @@ import java.io.IOException;
 
 import de.coding.mirror.dbstructure.DBStructure;
 
+/*
+TODO delete calss
+TODO add onSQL mirror
+ */
 public class MirrorService extends Service
 {
 	public static final int SLEEPTIME = 1000;
@@ -29,7 +33,8 @@ public class MirrorService extends Service
 					try
 					{
 						DB db = DB.getInstance(getApplicationContext(), dbStructure);
-						db.mirror();
+						Log.d("Mirror", "mirroring due to mirrorservice");
+						db.mirror(getApplicationContext(), false);
 					}
 					catch (Exception e)
 					{
@@ -40,6 +45,7 @@ public class MirrorService extends Service
 						long now = System.currentTimeMillis();
 						long diff = now - last;
 						long sleep = SLEEPTIME - diff;
+						Log.d("Mirror", sleep+"");
 						if (sleep < 0)
 						{
 							sleep = 0;
@@ -49,7 +55,7 @@ public class MirrorService extends Service
 					}
 					catch (InterruptedException e)
 					{
-						e.printStackTrace();
+						Log.e("Mirror", "error during sleep", e);
 					}
 				}
 			}

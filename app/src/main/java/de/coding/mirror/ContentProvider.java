@@ -14,6 +14,7 @@ public class ContentProvider extends android.content.ContentProvider
 	public Uri insert(Uri uri, ContentValues contentValues)
 	{
 		String table = uri.getPath().substring(1);
+		Log.i("Mirror", "insert into "+table);
 		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber(getContext()));
 		long id = db.insert(table, contentValues);
 		getContext().getContentResolver().notifyChange(Uri.parse(uri.toString() + "/" + id), null);
@@ -42,6 +43,7 @@ public class ContentProvider extends android.content.ContentProvider
 		{
 			table = uri.getPath().substring(1);
 		}
+		Log.i("Mirror", "delete from "+table);
 		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber(getContext()));
 		int count = db.delete(table, where, whereArgs);
 		getContext().getContentResolver().notifyChange(Uri.parse(uri.toString()), null);

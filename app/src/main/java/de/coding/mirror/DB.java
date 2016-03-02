@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.AsyncTask;
 import android.util.JsonWriter;
 import android.util.Log;
 
@@ -29,6 +30,8 @@ public class DB extends SQLiteOpenHelper
 {
 	DBStructure dbStructure;
 	private static DB instance;
+	long lastTimeMirrored;
+	boolean isDelayed;
 
 	public static  DB getInstance(Context context, int dbStructure)
 	{
@@ -44,6 +47,8 @@ public class DB extends SQLiteOpenHelper
 	{
 		super(context, "Mirror", null, 1);
 		this.dbStructure = DBStructure.getInstance(context, dbStructure);
+		lastTimeMirrored = -1;
+		isDelayed = false;
 	}
 
 	@Override
@@ -71,7 +76,7 @@ public class DB extends SQLiteOpenHelper
 			Log.i("Mirror", sql);
 			sqLiteDatabase.execSQL(sql);
 		}
-		String sql = "CREATE TABLE IF NOT EXISTS _queue (id INTEGER, mode TEXT, table TEXT, data TEXT, timestamp INTEGER, PRIMARY KEY(id, table))";
+		String sql = "CREATE TABLE IF NOT EXISTS _queue (id INTEGER, mode TEXT, tabel TEXT, data TEXT, timestamp INTEGER, PRIMARY KEY(id, tabel))";
 		Log.i("Mirror", sql);
 		sqLiteDatabase.execSQL(sql);
 	}
@@ -186,7 +191,7 @@ public class DB extends SQLiteOpenHelper
 		ContentValues cv = new ContentValues();
 		cv.put("id", id);
 		cv.put("mode", mode);
-		cv.put("table", table);
+		cv.put("tabel", table);
 		cv.put("data", json);
 		cv.put("timestamp", System.currentTimeMillis());
 		sqLiteDatabase.insertWithOnConflict("_queue", null, cv, SQLiteDatabase.CONFLICT_REPLACE);
@@ -234,8 +239,63 @@ public class DB extends SQLiteOpenHelper
 		return sqLiteDatabase.query(table, projection, selection, selectionArgs, null, null, sortOrder);
 	}
 
-	public void mirror(Context context)
+	private class MirrorCallback extends AsyncTask<Void, Void, Void>
 	{
+		Context context;
+
+		MirrorCallback(Context context)
+		{
+			this.context = context;
+		}
+
+		@Override
+		protected Void doInBackground(Void... params)
+		{
+			try
+			{
+				Thread.sleep(Core.getDelay(context));
+			}
+			catch (InterruptedException e)
+			{
+				Log.e("Mirror", "error while sleeping", e);
+			}
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void param)
+		{
+			mirror(context, true);
+			isDelayed = false;
+		}
+
+		@Override
+		protected void onPreExecute() {
+		}
+
+		@Override
+		protected void onProgressUpdate(Void... values) {
+		}
+	}
+
+	public synchronized void mirror(Context context, boolean force)
+	{
+		long time = System.currentTimeMillis();
+		if (!force)
+		{
+			long delay = Core.getDelay(context);
+			if (lastTimeMirrored + delay > time)
+			{
+				if (!isDelayed)
+				{
+					isDelayed = true;
+					MirrorCallback mirrorCallback = new MirrorCallback(context);
+					mirrorCallback.execute(new Void[]{});
+				}
+				return;
+			}
+		}
+		lastTimeMirrored = time;
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
 		List<Map<String, List<Map<String, List<String>>>>> content = new LinkedList<>();
 		String prevMode = "";
@@ -250,7 +310,7 @@ public class DB extends SQLiteOpenHelper
 			}
 			cursor.moveToFirst();
 			String mode = cursor.getString(cursor.getColumnIndex("mode"));
-			String table = cursor.getString(cursor.getColumnIndex("table"));
+			String table = cursor.getString(cursor.getColumnIndex("tabel"));
 			String data = cursor.getString(cursor.getColumnIndex("data"));
 			int id = cursor.getInt(cursor.getColumnIndex("id"));//TODO
 			cursor.close();

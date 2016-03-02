@@ -1,9 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="DBStructure">
-        <item>SETTINGSW_CS</item>
-        <item>SETTINGSW_REFRESHRATE_INTEGER</item>
-        <item>SETTINGSR_SC</item>
-        <item>SETTINGSR_REFRESHRATE_INTEGER</item>
+        <item>USERSW_CS</item>
+
+        <item>SHAREW_CS</item>
+        <item>SHAREW_PROVIDERUUID_TEXT</item>
+        <item>SHAREW_SUBSCRIBERUUID_TEXT</item>
+
+        <item>LOCATIONW_CS</item>
+        <item>LOCATIONW_ACCURACY_TEXT</item>
+        <item>LOCATIONW_ALTITUDE_TEXT</item>
+        <item>LOCATIONW_BEARING_TEXT</item>
+        <item>LOCATIONW_SPEED_TEXT</item>
+        <item>LOCATIONW_LATITUDE_TEXT</item>
+        <item>LOCATIONW_LONGITUDE_TEXT</item>
+        <item>LOCATIONW_PROVIDER_TEXT</item>
+        <item>LOCATIONW_TIME_TEXT</item>
+
+        <item>LOCATIONR_SC</item>
+        <item>LOCATIONR_ACCURACY_TEXT</item>
+        <item>LOCATIONR_ALTITUDE_TEXT</item>
+        <item>LOCATIONR_BEARING_TEXT</item>
+        <item>LOCATIONR_SPEED_TEXT</item>
+        <item>LOCATIONR_LATITUDE_TEXT</item>
+        <item>LOCATIONR_LONGITUDE_TEXT</item>
+        <item>LOCATIONR_PROVIDER_TEXT</item>
+        <item>LOCATIONR_TIME_TEXT</item>
+        <item>LOCATIONR_PROVIDERUUID_TEXT</item>
     </string-array>
 </resources>

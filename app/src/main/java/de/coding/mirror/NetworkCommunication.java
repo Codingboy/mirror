@@ -29,7 +29,7 @@ public class NetworkCommunication
 {
 	public static int send(String host, String json) throws IOException
 	{
-		Log.i("Mirrod", "post: " + json);
+		Log.i("Mirror", "post: " + json);
 		URL url = new URL(host+"send");
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod("POST");
