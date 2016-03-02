@@ -1,13 +1,18 @@
 package de.coding.mirror;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.provider.ContactsContract;
 import android.util.Log;
 
@@ -21,6 +26,7 @@ public class Core
 		setDBStructureNumber(context, dbStructureNumber);
 		setDelay(context, delay);
 		Log.i("Mirror", getUUID(context));
+		sendNotification(context, "uuid", getUUID(context));
 		context.startService(new Intent(context, MirrorService.class));
 		context.registerReceiver(new BroadcastReceiver()
 		{
@@ -110,5 +116,24 @@ public class Core
 		SharedPreferences.Editor editor = storage.edit();
 		editor.putLong("delay", delay);
 		editor.apply();
+	}
+
+
+	private static void sendNotification(Context context, String title, String message)
+	{
+		/*Intent intent = new Intent(context, Core.class);
+		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+		PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
+				PendingIntent.FLAG_ONE_SHOT);*/
+		Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+		Notification.Builder mBuilder = new Notification.Builder(context)
+						//.setSmallIcon(R.drawable.ic_setting_dark)
+						//.setContentIntent(pendingIntent)
+						.setAutoCancel(true)
+						.setSound(defaultSoundUri)
+						.setContentTitle(title)
+						.setContentText(message);
+		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+		notificationManager.notify(0, mBuilder.build());
 	}
 }

@@ -278,7 +278,7 @@ public class DB extends SQLiteOpenHelper
 		}
 	}
 
-	public synchronized void mirror(Context context, boolean force)
+	public void mirror(Context context, boolean force)
 	{
 		long time = System.currentTimeMillis();
 		if (!force)
