@@ -15,8 +15,8 @@ public class ContentProvider extends android.content.ContentProvider
 	{
 		String table = uri.getPath().substring(1);
 		Log.i("Mirror", "insert into "+table);
-		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber(getContext()));
-		long id = db.insert(table, contentValues);
+		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber());
+		long id = db.insert(table, contentValues, getContext());
 		getContext().getContentResolver().notifyChange(Uri.parse(uri.toString() + "/" + id), null);
 		return CONTENT_URI.buildUpon().appendPath(table).appendPath(id + "").build();
 	}
@@ -44,8 +44,8 @@ public class ContentProvider extends android.content.ContentProvider
 			table = uri.getPath().substring(1);
 		}
 		Log.i("Mirror", "delete from "+table);
-		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber(getContext()));
-		int count = db.delete(table, where, whereArgs);
+		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber());
+		int count = db.delete(table, where, whereArgs, getContext());
 		getContext().getContentResolver().notifyChange(Uri.parse(uri.toString()), null);
 		return count;
 	}
@@ -66,7 +66,7 @@ public class ContentProvider extends android.content.ContentProvider
 		{
 			table = uri.getPath().substring(1);
 		}
-		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber(getContext()));
+		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber());
 		Cursor cursor = db.query(table, projection, selection, selectionArgs, sortOrder);
 		cursor.setNotificationUri(getContext().getContentResolver(), CONTENT_URI);
 		return cursor;

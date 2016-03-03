@@ -13,86 +13,93 @@ import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.provider.ContactsContract;
 import android.util.Log;
+import android.widget.Toast;
 
+import java.net.URL;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+
+import me.pushy.sdk.Pushy;
 
 public class Core
 {
-	public static void init(Context context, String host, int dbStructureNumber, int delay)
+	private static String uuid;
+	private static String host;
+	private static int dbStructureNumber;
+	private static int delay;
+	private static String pushyID;
+	private static int maxQueueCount;
+
+	public static void init(Context context, String host, int dbStructureNumber, int delay, int maxQueueCount)
 	{
-		setHost(context, host);
-		setDBStructureNumber(context, dbStructureNumber);
-		setDelay(context, delay);
+		setHost(host);
+		setDBStructureNumber(dbStructureNumber);
+		setDelay(delay);
+		setMaxQueueCount(maxQueueCount);
 		Log.i("Mirror", getUUID(context));
 		sendNotification(context, "uuid", getUUID(context));
-		context.startService(new Intent(context, MirrorService.class));
-		context.registerReceiver(new BroadcastReceiver()
-		{
+		//context.startService(new Intent(context, MirrorService.class));
+		context.registerReceiver(new BroadcastReceiver() {
 			@Override
-			public void onReceive(Context context, Intent intent)
-			{
+			public void onReceive(Context context, Intent intent) {
 				ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 				NetworkInfo netInfo = cm.getActiveNetworkInfo();
-				if (netInfo != null && netInfo.isConnected())
-				{
+				if (netInfo != null && netInfo.isConnected()) {
 					Log.d("Mirror", "mirroring due to network connect");
-					DB.getInstance(context, Core.getDBStructureNumber(context)).mirror(context, true);
+					DB.getInstance(context, Core.getDBStructureNumber()).mirror(context, true);
 				}
 			}
 		}, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
+		Pushy.listen(context);
 	}
 
 	static String getUUID(Context context)
 	{
-		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
-		if (storage.contains("uuid"))
-		{
-			return storage.getString("uuid", "42");
-		}
-		else
+		if (uuid == null)
 		{
 			String androidId = "" + android.provider.Settings.Secure.getString(context.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
 			Cursor c = context.getContentResolver().query(ContactsContract.Profile.CONTENT_URI, null, null, null, null);
 			c.moveToFirst();
 			String username = c.getString(c.getColumnIndex("display_name"));
 			c.close();
-			UUID uuid = new UUID(androidId.hashCode(), username.hashCode());
-			String uuidString = uuid.toString();
-			SharedPreferences.Editor editor = storage.edit();
-			editor.putString("uuid", uuidString);
-			editor.apply();
-			return uuidString;
+			UUID uuidO = new UUID(androidId.hashCode(), username.hashCode());
+			uuid = uuidO.toString();
 		}
+		return uuid;
 	}
 
-	static String getHost(Context context)
+	static String getHost()
 	{
-		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
-		return storage.getString("host", "42");
+		return host;
 	}
 
-	static void setHost(Context context, String host)
+	static void setHost(String host)
 	{
-		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
-		SharedPreferences.Editor editor = storage.edit();
-		editor.putString("host", host);
-		editor.apply();
+		Core.host = host;
 	}
 
-	static int getDBStructureNumber(Context context)
+	public static String getPushyID()
 	{
-		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
-		return storage.getInt("dbStructureNumber", 42);
+		return pushyID;
 	}
 
-	static void setDBStructureNumber(Context context, int dbStructureNumber)
+	public static void setPushyID(String pushyID)
 	{
-		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
-		SharedPreferences.Editor editor = storage.edit();
-		editor.putInt("dbStructureNumber", dbStructureNumber);
-		editor.apply();
+		Core.pushyID = pushyID;
+	}
+
+	static int getDBStructureNumber()
+	{
+		return dbStructureNumber;
+	}
+
+	static void setDBStructureNumber(int dbStructureNumber)
+	{
+		Core.dbStructureNumber = dbStructureNumber;
 	}
 
 	public static void onStart(Context context)
@@ -104,20 +111,15 @@ public class Core
 
 	}
 
-	public static long getDelay(Context context)
+	public static long getDelay()
 	{
-		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
-		return storage.getLong("delay", 42);
+		return delay;
 	}
 
-	static void setDelay(Context context, int delay)
+	static void setDelay(int delay)
 	{
-		SharedPreferences storage = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
-		SharedPreferences.Editor editor = storage.edit();
-		editor.putLong("delay", delay);
-		editor.apply();
+		Core.delay = delay;
 	}
-
 
 	private static void sendNotification(Context context, String title, String message)
 	{
@@ -135,5 +137,15 @@ public class Core
 						.setContentText(message);
 		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 		notificationManager.notify(0, mBuilder.build());
+	}
+
+	public static int getMaxQueueCount()
+	{
+		return maxQueueCount;
+	}
+
+	static void setMaxQueueCount(int maxQueueCount)
+	{
+		Core.maxQueueCount = maxQueueCount;
 	}
 }

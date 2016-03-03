@@ -27,6 +27,42 @@ import java.util.Map;
 
 public class NetworkCommunication
 {
+	public static boolean register(String host, String uuid, String pushyID)
+	{
+		try {
+			OutputStream out = new ByteArrayOutputStream();
+			JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));
+			writer.beginObject();
+			writer.name("uuid").value(uuid);
+			writer.name("pushyID").value(pushyID);
+			writer.endObject();
+			writer.flush();
+			writer.close();
+			String json = out.toString();
+			URL url = new URL(host + "register");
+			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+			connection.setRequestMethod("POST");
+			connection.setDoOutput(true);
+			connection.setRequestProperty("Content-Type", "application/json");
+			//connection.setRequestProperty("Accept", "application/json");
+			OutputStreamWriter osw = new OutputStreamWriter(connection.getOutputStream());
+			Log.i("Mirror", "register: " + json);
+			osw.write(json);
+			osw.flush();
+			osw.close();
+			int response = connection.getResponseCode();
+			InputStream is = connection.getInputStream();
+			is.close();
+			connection.disconnect();
+			return response == 200;
+		}
+		catch (Exception e)
+		{
+			Log.e("Mirror", "error while register", e);
+			return false;
+		}
+	}
+
 	public static int send(String host, String json) throws IOException
 	{
 		Log.i("Mirror", "post: " + json);
@@ -41,13 +77,11 @@ public class NetworkCommunication
 		osw.flush();
 		osw.close();
 		int response = connection.getResponseCode();
-		InputStream is = connection.getInputStream();
-		is.close();
 		connection.disconnect();
 		return response;
 	}
 
-	public static void receive(Context context, String host, String json) throws IOException, JSONException
+	public static void receive(Context context, String host, String json, String uuid) throws IOException, JSONException
 	{
 		URL url = new URL(host+"receive");
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -141,15 +175,15 @@ public class NetworkCommunication
 				}
 			}
 		}
-		ack(context, ackMap, host);
+		ack(context, ackMap, host, uuid);
 	}
 
-	public static void ack(Context context, Map<String, HashMap<Integer, Integer>> ackMap, String host) throws MalformedURLException, IOException
+	public static void ack(Context context, Map<String, HashMap<Integer, Integer>> ackMap, String host, String uuid) throws MalformedURLException, IOException
 	{
 		OutputStream out = new ByteArrayOutputStream();
 		JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));
 		writer.beginObject();
-		writer.name("uuid").value(Core.getUUID(context));
+		writer.name("uuid").value(uuid);
 		writer.name("content");
 		writer.beginArray();
 		for (String table : ackMap.keySet()) {

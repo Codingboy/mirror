@@ -36,7 +36,8 @@ public class LocationListener implements android.location.LocationListener
             contentValues.put("SPEED", ""+speed);
             contentValues.put("LATITUDE", ""+latitude);
             contentValues.put("LONGITUDE", ""+longitude);
-            contentValues.put("PROVIDER", provider);
+			contentValues.put("PROVIDER", provider);
+			contentValues.put("TIME", System.currentTimeMillis());
             context.getContentResolver().insert(Uri.parse(ContentProvider.CONTENT_URI + "/LOCATIONW"), contentValues);
         }
     }

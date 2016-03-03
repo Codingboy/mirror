@@ -98,7 +98,14 @@ public class DBStructure
 				columnStructure.name = "_version";
 				tableStructure.columns.add(columnStructure);
 			}
-			else if (tableStructure.mode.equals("L"))
+			else if (tableStructure.mode.equals("SL"))
+			{
+				ColumnStructure columnStructure = new ColumnStructure();
+				columnStructure.type = "INTEGER";
+				columnStructure.name = "_id";
+				tableStructure.columns.add(columnStructure);
+			}
+			else if (tableStructure.mode.equals("CL"))
 			{
 				ColumnStructure columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";

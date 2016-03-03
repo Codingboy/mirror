@@ -27,7 +27,7 @@ public class MirrorService extends Service
 			public void run()
 			{
 				long last = System.currentTimeMillis();
-				int dbStructure = Core.getDBStructureNumber(getApplicationContext());
+				int dbStructure = Core.getDBStructureNumber();
 				while (true)
 				{
 					try
