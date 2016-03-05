@@ -2,12 +2,10 @@ package de.coding.mirror;
 
 import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
@@ -16,11 +14,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.ContactsContract;
 import android.util.Log;
-import android.widget.Toast;
 
-import java.net.URL;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import me.pushy.sdk.Pushy;
@@ -34,6 +28,18 @@ public class Core
 	private static String pushyID;
 	private static int maxQueueCount;
 
+	/**
+	 * Initialises the framework.
+	 * @param context context
+	 * @param host host
+	 * @param dbStructureNumber dbStructureNumber
+	 * @param delay delay
+	 * @param maxQueueCount maxQueueCount
+	 * @post host is initialised
+	 * @post dbStructureNumber is initialised
+	 * @post delay is initialised
+	 * @post maxQueueCount is initialised
+	 */
 	public static void init(Context context, String host, int dbStructureNumber, int delay, int maxQueueCount)
 	{
 		setHost(host);
@@ -43,21 +49,63 @@ public class Core
 		Log.i("Mirror", getUUID(context));
 		sendNotification(context, "uuid", getUUID(context));
 		//context.startService(new Intent(context, MirrorService.class));
-		context.registerReceiver(new BroadcastReceiver() {
+		context.registerReceiver(new BroadcastReceiver()
+		{
 			@Override
-			public void onReceive(Context context, Intent intent) {
+			public void onReceive(Context context, Intent intent)
+			{
 				ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 				NetworkInfo netInfo = cm.getActiveNetworkInfo();
-				if (netInfo != null && netInfo.isConnected()) {
-					Log.d("Mirror", "mirroring due to network connect");
-					DB.getInstance(context, Core.getDBStructureNumber()).mirror(context, true);
+				if (netInfo != null && netInfo.isConnected())
+				{
+					new MirrorTask(context).execute(new Void[]{});
 				}
 			}
 		}, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
 		Pushy.listen(context);
 	}
 
-	static String getUUID(Context context)
+
+	private static class MirrorTask extends AsyncTask<Void, Void, Void>
+	{
+		Context context;
+
+		MirrorTask(Context context)
+		{
+			this.context = context;
+		}
+
+		@Override
+		protected Void doInBackground(Void... params)
+		{
+			Log.d("Mirror", "mirroring due to network connect");
+			DB.getInstance(context, Core.getDBStructureNumber()).mirror(context, true);
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void param)
+		{
+		}
+
+		@Override
+		protected void onPreExecute()
+		{
+		}
+
+		@Override
+		protected void onProgressUpdate(Void... values)
+		{
+		}
+	}
+
+	/**
+	 * Gets the uuid.
+	 * @param context context
+	 * @return uuid
+	 * @post uuid is initialised
+	 */
+	protected static String getUUID(Context context)
 	{
 		if (uuid == null)
 		{
@@ -72,51 +120,78 @@ public class Core
 		return uuid;
 	}
 
-	static String getHost()
+	/**
+	 * Gets the host.
+	 * @return host
+	 */
+	protected static String getHost()
 	{
 		return host;
 	}
 
-	static void setHost(String host)
+	/**
+	 * Sets the host.
+	 * @param host host
+	 * @post host is initialised
+	 */
+	protected static void setHost(String host)
 	{
 		Core.host = host;
 	}
 
-	public static String getPushyID()
+	/**
+	 * Gets the pushyID.
+	 * @return pushyID
+	 */
+	protected static String getPushyID()
 	{
 		return pushyID;
 	}
 
-	public static void setPushyID(String pushyID)
+	/**
+	 * Sets the pushyID.
+	 * @param pushyID pushyID
+	 * @post pushyID is initialised
+	 */
+	protected static void setPushyID(String pushyID)
 	{
 		Core.pushyID = pushyID;
 	}
 
-	static int getDBStructureNumber()
+	/**
+	 * Gets the dbStructureNumber.
+	 * @return dbStructureNumber
+	 */
+	protected static int getDBStructureNumber()
 	{
 		return dbStructureNumber;
 	}
 
-	static void setDBStructureNumber(int dbStructureNumber)
+	/**
+	 * Sets the dbStructureNumber.
+	 * @param dbStructureNumber dbStructureNumber
+	 * @post dbStructureNumber is initialised
+	 */
+	protected static void setDBStructureNumber(int dbStructureNumber)
 	{
 		Core.dbStructureNumber = dbStructureNumber;
 	}
 
-	public static void onStart(Context context)
-	{
-	}
-
-	public static void onStop(Context context)
-	{
-
-	}
-
-	public static long getDelay()
+	/**
+	 * Gets the delay.
+	 * @return delay
+	 */
+	protected static int getDelay()
 	{
 		return delay;
 	}
 
-	static void setDelay(int delay)
+	/**
+	 * Sets the delay.
+	 * @param delay delay
+	 * @post delay is initialised
+	 */
+	protected static void setDelay(int delay)
 	{
 		Core.delay = delay;
 	}
@@ -139,12 +214,21 @@ public class Core
 		notificationManager.notify(0, mBuilder.build());
 	}
 
-	public static int getMaxQueueCount()
+	/**
+	 * Gets the maxQueueCount.
+	 * @return maxQueueCount
+	 */
+	protected static int getMaxQueueCount()
 	{
 		return maxQueueCount;
 	}
 
-	static void setMaxQueueCount(int maxQueueCount)
+	/**
+	 * Initialises the maxQueueCount.
+	 * @param maxQueueCount
+	 * @post maxQueueCount is initialised
+	 */
+	protected static void setMaxQueueCount(int maxQueueCount)
 	{
 		Core.maxQueueCount = maxQueueCount;
 	}

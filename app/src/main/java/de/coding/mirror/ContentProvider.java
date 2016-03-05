@@ -22,9 +22,26 @@ public class ContentProvider extends android.content.ContentProvider
 	}
 
 	@Override
-	public int update(Uri uri, ContentValues contentValues, String s, String[] strings)
+	public int update(Uri uri, ContentValues contentValues, String where, String[] whereArgs)
 	{
-		return 0;//TODO
+		String table;
+		if (uri.getPath().substring(1).contains("/"))
+		{
+			String[] arr = uri.getPath().substring(1).split("/");
+			table = arr[0];
+			String id = arr[1];
+			where = "_id = ?";
+			whereArgs = new String[]{id};
+		}
+		else
+		{
+			table = uri.getPath().substring(1);
+		}
+		Log.i("Mirror", "delete from "+table);
+		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber());
+		int count = db.update(table, contentValues, where, whereArgs, getContext());
+		getContext().getContentResolver().notifyChange(Uri.parse(uri.toString()), null);
+		return count;
 	}
 
 	@Override

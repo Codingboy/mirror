@@ -26,9 +26,6 @@ public class MainActivity extends Activity
 		Log.d("Mirror", "--------------------------");
 		setContentView(R.layout.activity_main);
 		Core.init(getApplicationContext(), "http://192.168.2.105:8080/", R.array.DBStructure, 1000, 50);
-		ContentValues contentValues = new ContentValues();
-		contentValues.put("_version", 0);
-		getApplicationContext().getContentResolver().insert(Uri.parse(ContentProvider.CONTENT_URI + "/USERSW"), contentValues);
 		LocationManager locationManager = (LocationManager) this.getSystemService(LOCATION_SERVICE);
 		locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000 * 60 * 10, 100, new LocationListener(getApplicationContext()));
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000 * 60 * 10, 100, new LocationListener(getApplicationContext()));
@@ -57,6 +54,5 @@ public class MainActivity extends Activity
 	protected void onStart()
 	{
 		super.onStart();
-		Core.onStart(getApplicationContext());
 	}
 }

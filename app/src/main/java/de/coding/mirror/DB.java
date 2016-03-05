@@ -15,7 +15,6 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.LinkageError;
 import java.lang.String;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -59,13 +58,15 @@ public class DB extends SQLiteOpenHelper
 	@Override
 	public void onCreate(SQLiteDatabase sqLiteDatabase)
 	{
-		for (TableStructure tableStructure : dbStructure.tables)
+		for (String k : dbStructure.tables.keySet())
 		{
+			TableStructure tableStructure = dbStructure.tables.get(k);
 			StringBuilder stringBuilder = new StringBuilder();
 			stringBuilder.append("CREATE TABLE IF NOT EXISTS "+tableStructure.name+" (");
 			boolean firstColumn = true;
-			for (ColumnStructure columnStructure : tableStructure.columns)
+			for (String key : tableStructure.columns.keySet())
 			{
+				ColumnStructure columnStructure = tableStructure.columns.get(key);
 				if (!firstColumn)
 				{
 					stringBuilder.append(", ");
@@ -94,8 +95,9 @@ public class DB extends SQLiteOpenHelper
 
 	public void reset(SQLiteDatabase sqLiteDatabase)
 	{
-		for (TableStructure tableStructure : dbStructure.tables)
+		for (String key : dbStructure.tables.keySet())
 		{
+			TableStructure tableStructure = dbStructure.tables.get(key);
 			String sql = "DROP TABLE "+tableStructure.name;
 			Log.i("Mirror", sql);
 			sqLiteDatabase.execSQL(sql);
@@ -116,7 +118,7 @@ public class DB extends SQLiteOpenHelper
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
 		int count = sqLiteDatabase.delete(table, where, whereArgs);
-		String mode = dbStructure.getMode(table);
+		String mode = dbStructure.tables.get(table).mode;
 		if (mode.equals("CS"))
 		{
 			writeToQueue(Integer.valueOf(whereArgs[0]), "delete", table, context);
@@ -127,7 +129,7 @@ public class DB extends SQLiteOpenHelper
 	public long insert(String table, ContentValues contentValues, Context context)
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
-		String mode = dbStructure.getMode(table);
+		String mode = dbStructure.tables.get(table).mode;
 		if (mode.equals("CS"))
 		{
 			int version = 0;
@@ -260,8 +262,8 @@ public class DB extends SQLiteOpenHelper
 				String registrationId = Pushy.register(context);
 				Log.d("Mirror", registrationId + "");
 				Core.setPushyID(registrationId);
-				NetworkCommunication.register(Core.getHost(), Core.getUUID(context), registrationId);
-				isRegistered = NetworkCommunication.register(Core.getHost(), Core.getUUID(context), registrationId);
+				isRegistered = NetworkCommunication.register(context);
+				mirror(context, false);
 			}
 			catch (PushyException e)
 			{
@@ -287,7 +289,7 @@ public class DB extends SQLiteOpenHelper
 	public int update(String table, ContentValues contentValues, String where, String[] whereArgs, Context context)
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
-		String mode = dbStructure.getMode(table);
+		String mode = dbStructure.tables.get(table).mode;
 		if (mode.equals("CS"))
 		{
 			int version = 0;
@@ -352,6 +354,7 @@ public class DB extends SQLiteOpenHelper
 		@Override
 		protected void onPostExecute(Void param)
 		{
+			Log.d("Mirror", "mirror due to delay");
 			mirror(context, true);
 			isDelayed = false;
 		}
@@ -389,6 +392,7 @@ public class DB extends SQLiteOpenHelper
 			}
 		}
 		lastTimeMirrored = time;
+		Log.d("Mirror", "mirroring");
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
 		List<Map<String, List<Map<String, List<String>>>>> content = new LinkedList<>();
 		String prevMode = "";
@@ -515,7 +519,7 @@ public class DB extends SQLiteOpenHelper
 				writer.close();
 				String json = out.toString();
 				String host = Core.getHost();
-				NetworkCommunication.send(host, json);
+				NetworkCommunication.send(json);
 				for (String table : toBeRemoved.keySet())
 				{
 					List<Integer> ids = toBeRemoved.get(table);

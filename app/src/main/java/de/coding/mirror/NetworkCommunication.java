@@ -19,7 +19,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,23 +26,35 @@ import java.util.Map;
 
 public class NetworkCommunication
 {
-	public static boolean register(String host, String uuid, String pushyID)
+	/**
+	 * Registers the framework at the server.
+	 * @param context
+	 * @return true if registered successful
+	 * @note must not be called from ui thread
+	 * @pre uuid needs to be set
+	 * @pre pushyID needs to be set
+	 * @pre host needs to be set
+	 */
+	protected static boolean register(Context context)
 	{
-		try {
+		try
+		{
 			OutputStream out = new ByteArrayOutputStream();
 			JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));
 			writer.beginObject();
-			writer.name("uuid").value(uuid);
-			writer.name("pushyID").value(pushyID);
+			writer.name("uuid").value(Core.getUUID(context));
+			writer.name("pushyID").value(Core.getPushyID());
 			writer.endObject();
 			writer.flush();
 			writer.close();
 			String json = out.toString();
-			URL url = new URL(host + "register");
+			URL url = new URL(Core.getHost() + "register");
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			connection.setRequestMethod("POST");
 			connection.setDoOutput(true);
 			connection.setRequestProperty("Content-Type", "application/json");
+			connection.setConnectTimeout(0);
+			connection.setDoInput(false);
 			//connection.setRequestProperty("Accept", "application/json");
 			OutputStreamWriter osw = new OutputStreamWriter(connection.getOutputStream());
 			Log.i("Mirror", "register: " + json);
@@ -51,8 +62,8 @@ public class NetworkCommunication
 			osw.flush();
 			osw.close();
 			int response = connection.getResponseCode();
-			InputStream is = connection.getInputStream();
-			is.close();
+			//InputStream is = connection.getInputStream();
+			//is.close();
 			connection.disconnect();
 			return response == 200;
 		}
@@ -63,15 +74,24 @@ public class NetworkCommunication
 		}
 	}
 
-	public static int send(String host, String json) throws IOException
+	/**
+	 * Sends data to the server.
+	 * @param json content to send to the server
+	 * @return http status code
+	 * @throws IOException if error occured during transmission
+	 * @pre host needs to be set
+	 */
+	protected static int send(String json) throws IOException
 	{
 		Log.i("Mirror", "post: " + json);
-		URL url = new URL(host+"send");
+		URL url = new URL(Core.getHost()+"send");
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod("POST");
 		connection.setDoOutput(true);
 		connection.setRequestProperty("Content-Type", "application/json");
-		connection.setRequestProperty("Accept", "application/json");
+		//connection.setRequestProperty("Accept", "application/json");
+		connection.setConnectTimeout(0);
+		connection.setDoInput(false);
 		OutputStreamWriter osw = new OutputStreamWriter(connection.getOutputStream());
 		osw.write(json);
 		osw.flush();
@@ -81,14 +101,25 @@ public class NetworkCommunication
 		return response;
 	}
 
-	public static void receive(Context context, String host, String json, String uuid) throws IOException, JSONException
+	/**
+	 * Handles the receiving of data from the server
+	 * @param context application context
+	 * @param json data to send to server to request data
+	 * @throws IOException if error occured during transmission
+	 * @throws JSONException if server delivered invalid json
+	 * @pre host needs to be set
+	 * @pre uuid needs to be set
+	 */
+	public static void receive(Context context, String json) throws IOException, JSONException
 	{
-		URL url = new URL(host+"receive");
+		URL url = new URL(Core.getHost()+"receive");
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod("POST");
 		connection.setDoOutput(true);
 		connection.setRequestProperty("Content-Type", "application/json");
 		connection.setRequestProperty("Accept", "application/json");
+		connection.setConnectTimeout(0);
+		connection.setDoInput(true);
 		OutputStreamWriter osw = new OutputStreamWriter(connection.getOutputStream());
 		Log.i("Mirror", "get: "+json);
 		osw.write(json);
@@ -97,7 +128,6 @@ public class NetworkCommunication
 		InputStream is = connection.getInputStream();
 		BufferedReader streamReader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
 		StringBuilder stringBuilder = new StringBuilder();
-
 		String inputStr;
 		while ((inputStr = streamReader.readLine()) != null)
 		{
@@ -175,15 +205,23 @@ public class NetworkCommunication
 				}
 			}
 		}
-		ack(context, ackMap, host, uuid);
+		ack(ackMap, context);
 	}
 
-	public static void ack(Context context, Map<String, HashMap<Integer, Integer>> ackMap, String host, String uuid) throws MalformedURLException, IOException
+	/**
+	 * Acknowledges the received data.
+	 * @param context application context
+	 * @param ackMap {TableName:{_id:_version}}
+	 * @throws IOException if error occured during transmission
+	 * @pre host needs to be set
+	 * @pre uuid needs to be set
+	 */
+	protected static void ack(Map<String, HashMap<Integer, Integer>> ackMap, Context context) throws IOException
 	{
 		OutputStream out = new ByteArrayOutputStream();
 		JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));
 		writer.beginObject();
-		writer.name("uuid").value(uuid);
+		writer.name("uuid").value(Core.getUUID(context));
 		writer.name("content");
 		writer.beginArray();
 		for (String table : ackMap.keySet()) {
@@ -206,20 +244,22 @@ public class NetworkCommunication
 		writer.flush();
 		writer.close();
 		String json = out.toString();
-		URL url = new URL(host+"ack");
+		URL url = new URL(Core.getHost()+"ack");
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod("POST");
 		connection.setDoOutput(true);
 		connection.setRequestProperty("Content-Type", "application/json");
 		//connection.setRequestProperty("Accept", "application/json");
+		connection.setConnectTimeout(0);
+		connection.setDoInput(false);
 		OutputStreamWriter osw = new OutputStreamWriter(connection.getOutputStream());
 		Log.i("Mirror", "ack: " + json);
 		osw.write(json);
 		osw.flush();
 		osw.close();
 		int response = connection.getResponseCode();
-		InputStream is = connection.getInputStream();
-		is.close();
+		//InputStream is = connection.getInputStream();
+		//is.close();
 		connection.disconnect();
 	}
 }

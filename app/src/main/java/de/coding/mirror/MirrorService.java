@@ -11,7 +11,6 @@ import de.coding.mirror.dbstructure.DBStructure;
 
 /*
 TODO delete calss
-TODO add onSQL mirror
  */
 public class MirrorService extends Service
 {
@@ -65,7 +64,8 @@ public class MirrorService extends Service
 	}
 
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
+	public int onStartCommand(Intent intent, int flags, int startId)
+	{
 		return super.onStartCommand(intent, flags, startId);
 	}
 

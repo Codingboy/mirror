@@ -2,44 +2,29 @@ package de.coding.mirror.dbstructure;
 
 import android.content.Context;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DBStructure
 {
-	public Set<TableStructure> tables;
+	public Map<String, TableStructure> tables;
 	private static DBStructure instance;
 
 	private DBStructure()
 	{
-		tables = new HashSet<>();
+		tables = new HashMap<>();
 	}
 
 	public TableStructure getTableStructure(String name)
 	{
-		for (TableStructure tableStructure : tables)
+		if (tables.containsKey(name))
 		{
-			if (tableStructure.name.equals(name))
-			{
-				return tableStructure;
-			}
+			return tables.get(name);
 		}
 		TableStructure tableStructure = new TableStructure();
 		tableStructure.name = name;
-		tables.add(tableStructure);
+		tables.put(name, tableStructure);
 		return tableStructure;
-	}
-
-	public String getMode(String table)
-	{
-		for (TableStructure tableStructure : tables)
-		{
-			if (tableStructure.name.equals(table))
-			{
-				return tableStructure.mode;
-			}
-		}
-		return "";
 	}
 
 	public static DBStructure getInstance(Context context, int dbStructure)
@@ -67,50 +52,51 @@ public class DBStructure
 				ColumnStructure columnStructure = new ColumnStructure();
 				columnStructure.type = columnType;
 				columnStructure.name = columnName;
-				tableStructure.columns.add(columnStructure);
+				tableStructure.columns.put(columnName, columnStructure);
 			}
 		}
-		for (TableStructure tableStructure : instance.tables)
+		for (String key : instance.tables.keySet())
 		{
+			TableStructure tableStructure = instance.tables.get(key);
 			if (tableStructure.mode.equals("CS"))
 			{
 				ColumnStructure columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
 				columnStructure.name = "_id";
-				tableStructure.columns.add(columnStructure);
+				tableStructure.columns.put(columnStructure.name, columnStructure);
 				columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
 				columnStructure.name = "_version";
-				tableStructure.columns.add(columnStructure);
+				tableStructure.columns.put(columnStructure.name, columnStructure);
 				columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
 				columnStructure.name = "_status";
-				tableStructure.columns.add(columnStructure);
+				tableStructure.columns.put(columnStructure.name, columnStructure);
 			}
 			else if (tableStructure.mode.equals("SC"))
 			{
 				ColumnStructure columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
 				columnStructure.name = "_id";
-				tableStructure.columns.add(columnStructure);
+				tableStructure.columns.put(columnStructure.name, columnStructure);
 				columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
 				columnStructure.name = "_version";
-				tableStructure.columns.add(columnStructure);
+				tableStructure.columns.put(columnStructure.name, columnStructure);
 			}
 			else if (tableStructure.mode.equals("SL"))
 			{
 				ColumnStructure columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
 				columnStructure.name = "_id";
-				tableStructure.columns.add(columnStructure);
+				tableStructure.columns.put(columnStructure.name, columnStructure);
 			}
 			else if (tableStructure.mode.equals("CL"))
 			{
 				ColumnStructure columnStructure = new ColumnStructure();
 				columnStructure.type = "INTEGER";
 				columnStructure.name = "_id";
-				tableStructure.columns.add(columnStructure);
+				tableStructure.columns.put(columnStructure.name, columnStructure);
 			}
 		}
 		return instance;
