@@ -30,13 +30,19 @@ import me.pushy.sdk.exceptions.PushyException;
 
 public class DB extends SQLiteOpenHelper
 {
-	DBStructure dbStructure;
+	private DBStructure dbStructure;
 	private static DB instance;
-	long lastTimeMirrored;
-	boolean isDelayed;
-	boolean isRegistered;
+	private long lastTimeMirrored;
+	private boolean isDelayed;
+	private boolean isRegistered;
 
-	public static DB getInstance(Context context, int dbStructure)
+	/**
+	 * Gets an instance.
+	 * @param context context
+	 * @param dbStructure DBStructure.xml as integer
+	 * @return instance
+	 */
+	protected static DB getInstance(Context context, int dbStructure)
 	{
 		if (instance != null)
 		{
@@ -46,6 +52,11 @@ public class DB extends SQLiteOpenHelper
 		return instance;
 	}
 
+	/**
+	 * Initialises the object.
+	 * @param context context
+	 * @param dbStructure DBStructure.xml as integer
+	 */
 	private DB(Context context, int dbStructure)
 	{
 		super(context, "Mirror", null, 1);
@@ -93,7 +104,11 @@ public class DB extends SQLiteOpenHelper
 		reset(sqLiteDatabase);
 	}
 
-	public void reset(SQLiteDatabase sqLiteDatabase)
+	/**
+	 * Resets the database.
+	 * @param sqLiteDatabase sqLiteDatabase
+	 */
+	protected void reset(SQLiteDatabase sqLiteDatabase)
 	{
 		for (String key : dbStructure.tables.keySet())
 		{
@@ -108,13 +123,24 @@ public class DB extends SQLiteOpenHelper
 		onCreate(sqLiteDatabase);
 	}
 
+	/**
+	 * Resets the database.
+	 */
 	public void reset()
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
 		reset(sqLiteDatabase);
 	}
 
-	public int delete(String table, String where, String[] whereArgs, Context context)
+	/**
+	 * Deletes a row from the table.
+	 * @param table tableName
+	 * @param where where
+	 * @param whereArgs whereArgs
+	 * @param context context
+	 * @return number of deleted rows
+	 */
+	protected int delete(String table, String where, String[] whereArgs, Context context)
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
 		int count = sqLiteDatabase.delete(table, where, whereArgs);
@@ -126,7 +152,14 @@ public class DB extends SQLiteOpenHelper
 		return count;
 	}
 
-	public long insert(String table, ContentValues contentValues, Context context)
+	/**
+	 * Inserts a row into a table. Updates on conflict.
+	 * @param table tableName
+	 * @param contentValues contentValues
+	 * @param context context
+	 * @return _id of the inserted row
+	 */
+	protected long insert(String table, ContentValues contentValues, Context context)
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
 		String mode = dbStructure.tables.get(table).mode;
@@ -162,6 +195,13 @@ public class DB extends SQLiteOpenHelper
 		return id;
 	}
 
+	/**
+	 * Enqueues a row to mirror it to the server.
+	 * @param id _id of a row
+	 * @param mode "insert" or "delete"
+	 * @param table tableName
+	 * @param context context
+	 */
 	private void writeToQueue(long id, String mode, String table, Context context)
 	{
 		StringBuilder stringBuilder = new StringBuilder();
@@ -215,13 +255,24 @@ public class DB extends SQLiteOpenHelper
 		new MirrorTask(context).execute(new Void[]{});
 	}
 
+	/**
+	 * Mirrors the database changes to server.
+	 * @pre host needs to be set
+	 * @pre uuid needs to be set
+	 * @pre delay needs to be set
+	 * @post pushyID is initialised
+	 */
 	private class MirrorTask extends AsyncTask<Void, Void, Void>
 	{
 		Context context;
 
-		MirrorTask(Context context)
+		protected MirrorTask(Context context)
 		{
 			this.context = context;
+		}
+
+		private MirrorTask()
+		{
 		}
 
 		@Override
@@ -237,21 +288,34 @@ public class DB extends SQLiteOpenHelper
 		}
 
 		@Override
-		protected void onPreExecute() {
+		protected void onPreExecute()
+		{
 		}
 
 		@Override
-		protected void onProgressUpdate(Void... values) {
+		protected void onProgressUpdate(Void... values)
+		{
 		}
 	}
 
+	/**
+	 * Registers at the server.
+	 * @pre host needs to be set
+	 * @pre uuid needs to be set
+	 * @pre delay needs to be set
+	 * @post pushyID is initialised
+	 */
 	private class RegisterTask extends AsyncTask<Void, Void, Void>
 	{
 		Context context;
 
-		RegisterTask(Context context)
+		protected RegisterTask(Context context)
 		{
 			this.context = context;
+		}
+
+		private RegisterTask()
+		{
 		}
 
 		@Override
@@ -278,15 +342,26 @@ public class DB extends SQLiteOpenHelper
 		}
 
 		@Override
-		protected void onPreExecute() {
+		protected void onPreExecute()
+		{
 		}
 
 		@Override
-		protected void onProgressUpdate(Void... values) {
+		protected void onProgressUpdate(Void... values)
+		{
 		}
 	}
 
-	public int update(String table, ContentValues contentValues, String where, String[] whereArgs, Context context)
+	/**
+	 * Updates a table. Inserts on conflict.
+	 * @param table tableName
+	 * @param contentValues new values
+	 * @param where where
+	 * @param whereArgs whereArgs
+	 * @param context context
+	 * @return number of affected rows
+	 */
+	protected int update(String table, ContentValues contentValues, String where, String[] whereArgs, Context context)
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
 		String mode = dbStructure.tables.get(table).mode;
@@ -322,19 +397,39 @@ public class DB extends SQLiteOpenHelper
 		return count;
 	}
 
-	public Cursor query(String table, String[] projection, String selection, String[] selectionArgs, String sortOrder)
+	/**
+	 * Query the given table.
+	 * @param table name of table
+	 * @param projection columnNames
+	 * @param selection select
+	 * @param selectionArgs selectArguments
+	 * @param sortOrder orderBy
+	 * @return cursor
+	 */
+	protected Cursor query(String table, String[] projection, String selection, String[] selectionArgs, String sortOrder)
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
 		return sqLiteDatabase.query(table, projection, selection, selectionArgs, null, null, sortOrder);
 	}
 
+	/**
+	 * Mirrors the database changes to server after a delay.
+	 * @pre host needs to be set
+	 * @pre uuid needs to be set
+	 * @pre delay needs to be set
+	 * @post pushyID is initialised
+	 */
 	private class MirrorCallback extends AsyncTask<Void, Void, Void>
 	{
 		Context context;
 
-		MirrorCallback(Context context)
+		protected MirrorCallback(Context context)
 		{
 			this.context = context;
+		}
+
+		private MirrorCallback()
+		{
 		}
 
 		@Override
@@ -348,27 +443,37 @@ public class DB extends SQLiteOpenHelper
 			{
 				Log.e("Mirror", "error while sleeping", e);
 			}
+			Log.d("Mirror", "mirror due to delay");
+			mirror(context, true);
+			isDelayed = false;
 			return null;
 		}
 
 		@Override
 		protected void onPostExecute(Void param)
 		{
-			Log.d("Mirror", "mirror due to delay");
-			mirror(context, true);
-			isDelayed = false;
 		}
 
 		@Override
-		protected void onPreExecute() {
+		protected void onPreExecute()
+		{
 		}
 
 		@Override
-		protected void onProgressUpdate(Void... values) {
+		protected void onProgressUpdate(Void... values)
+		{
 		}
 	}
 
-	public void mirror(Context context, boolean force)
+	/**
+	 * Mirrors the database changes to server.
+	 * @param context context
+	 * @param force true to force an update independent if there was a recent update
+	 * @pre host needs to be set
+	 * @pre uuid needs to be set
+	 * @post pushyID is initialised
+	 */
+	protected void mirror(Context context, boolean force)
 	{
 		Log.d("Mirror", "mirror");
 		if (!isRegistered)

@@ -26,6 +26,10 @@ import java.util.Map;
 
 public class NetworkCommunication
 {
+	private NetworkCommunication()
+	{
+	}
+
 	/**
 	 * Registers the framework at the server.
 	 * @param context
@@ -110,7 +114,7 @@ public class NetworkCommunication
 	 * @pre host needs to be set
 	 * @pre uuid needs to be set
 	 */
-	public static void receive(Context context, String json) throws IOException, JSONException
+	protected static void receive(Context context, String json) throws IOException, JSONException
 	{
 		URL url = new URL(Core.getHost()+"receive");
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -216,7 +220,7 @@ public class NetworkCommunication
 	 * @pre host needs to be set
 	 * @pre uuid needs to be set
 	 */
-	protected static void ack(Map<String, HashMap<Integer, Integer>> ackMap, Context context) throws IOException
+	private static void ack(Map<String, HashMap<Integer, Integer>> ackMap, Context context) throws IOException
 	{
 		OutputStream out = new ByteArrayOutputStream();
 		JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));

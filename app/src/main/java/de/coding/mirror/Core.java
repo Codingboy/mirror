@@ -65,7 +65,13 @@ public class Core
 		Pushy.listen(context);
 	}
 
-
+	/**
+	 * Mirrors the database changes to server.
+	 * @pre host needs to be set
+	 * @pre uuid needs to be set
+	 * @pre delay needs to be set
+	 * @post pushyID is initialised
+	 */
 	private static class MirrorTask extends AsyncTask<Void, Void, Void>
 	{
 		Context context;
