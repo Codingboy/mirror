@@ -3,10 +3,9 @@ package de.coding.track;
 import android.content.ContentValues;
 import android.content.Context;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Bundle;
 
-import de.coding.mirror.ContentProvider;
+import de.coding.mirror.Core;
 
 public class LocationListener implements android.location.LocationListener
 {
@@ -35,10 +34,10 @@ public class LocationListener implements android.location.LocationListener
             contentValues.put("BEARING", ""+bearing);
             contentValues.put("SPEED", ""+speed);
             contentValues.put("LATITUDE", ""+latitude);
-            contentValues.put("LONGITUDE", ""+longitude);
+            contentValues.put("LONGITUDE", "" + longitude);
 			contentValues.put("PROVIDER", provider);
 			contentValues.put("TIME", System.currentTimeMillis());
-            context.getContentResolver().insert(Uri.parse(ContentProvider.CONTENT_URI + "/LOCATIONW"), contentValues);
+            context.getContentResolver().insert(Core.getContentUri("LOCATIONW"), contentValues);
         }
     }
 

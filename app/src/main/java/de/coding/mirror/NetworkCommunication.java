@@ -24,6 +24,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import de.coding.mirror.enums.ColumnKeys;
+import de.coding.mirror.enums.JSONKeys;
+
 public class NetworkCommunication
 {
 	private NetworkCommunication()
@@ -108,13 +111,12 @@ public class NetworkCommunication
 	/**
 	 * Handles the receiving of data from the server
 	 * @param context application context
-	 * @param json data to send to server to request data
 	 * @throws IOException if error occured during transmission
 	 * @throws JSONException if server delivered invalid json
 	 * @pre host needs to be set
 	 * @pre uuid needs to be set
 	 */
-	protected static void receive(Context context, String json) throws IOException, JSONException
+	protected static void receive(Context context) throws IOException, JSONException
 	{
 		URL url = new URL(Core.getHost()+"receive");
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -125,7 +127,16 @@ public class NetworkCommunication
 		connection.setConnectTimeout(0);
 		connection.setDoInput(true);
 		OutputStreamWriter osw = new OutputStreamWriter(connection.getOutputStream());
-		Log.i("Mirror", "get: "+json);
+		OutputStream out = new ByteArrayOutputStream();
+		JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));
+		writer.beginObject();
+		writer.name("uuid").value(Core.getUUID(context));
+		writer.name("pushyID").value(Core.getPushyID());
+		writer.endObject();
+		writer.flush();
+		writer.close();
+		String json = out.toString();
+		Log.i("Mirror", "get: " + json);
 		osw.write(json);
 		osw.flush();
 		osw.close();
@@ -143,7 +154,7 @@ public class NetworkCommunication
 		json = stringBuilder.toString();
 		Log.i("Mirror", json);
 		JSONObject jsonObject = new JSONObject(json);
-		JSONArray content = jsonObject.getJSONArray("content");
+		JSONArray content = jsonObject.getJSONArray(JSONKeys.content.toString());
 		HashMap<String, HashMap<Integer, Integer>> ackMap = new HashMap<>();
 		for (int i=0; i<content.length(); i++)
 		{
@@ -154,7 +165,7 @@ public class NetworkCommunication
 			while (iterator.hasNext())
 			{
 				String mode = iterator.next();
-				if (mode.equals("delete"))
+				if (mode.equals(JSONKeys.delete.toString()))
 				{
 					delete = true;
 				}
@@ -195,10 +206,10 @@ public class NetworkCommunication
 								contentValues.put(key, (Integer)value);
 							}
 						}
-						ackTable.put(contentValues.getAsInteger("_id"), contentValues.getAsInteger("_version"));
+						ackTable.put(contentValues.getAsInteger(ColumnKeys._id.toString()), contentValues.getAsInteger(ColumnKeys._version.toString()));
 						if (delete)
 						{
-							context.getContentResolver().delete(Uri.parse(UserDictionary.Words.CONTENT_URI + "/" + table), "_id=?", new String[]{contentValues.getAsString("_id")});
+							context.getContentResolver().delete(Uri.parse(UserDictionary.Words.CONTENT_URI + "/" + table), ColumnKeys._id.toString()+"=?", new String[]{contentValues.getAsString(ColumnKeys._id.toString())});
 						}
 						else
 						{
@@ -209,7 +220,10 @@ public class NetworkCommunication
 				}
 			}
 		}
-		ack(ackMap, context);
+		if (!ackMap.isEmpty())
+		{
+			ack(ackMap, context);
+		}
 	}
 
 	/**
@@ -225,10 +239,11 @@ public class NetworkCommunication
 		OutputStream out = new ByteArrayOutputStream();
 		JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));
 		writer.beginObject();
-		writer.name("uuid").value(Core.getUUID(context));
-		writer.name("content");
+		writer.name(JSONKeys.uuid.toString()).value(Core.getUUID(context));
+		writer.name(JSONKeys.content.toString());
 		writer.beginArray();
-		for (String table : ackMap.keySet()) {
+		for (String table : ackMap.keySet())
+		{
 			writer.beginObject();
 			writer.name(table);
 			writer.beginArray();
@@ -236,8 +251,8 @@ public class NetworkCommunication
 			for (Integer key : ackTable.keySet())
 			{
 				writer.beginObject();
-				writer.name("_id").value(key);
-				writer.name("_version").value(ackTable.get(key));
+				writer.name(ColumnKeys._id.toString()).value(key);
+				writer.name(ColumnKeys._version.toString()).value(ackTable.get(key));
 				writer.endObject();
 			}
 			writer.endArray();

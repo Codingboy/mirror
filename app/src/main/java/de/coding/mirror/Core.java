@@ -2,10 +2,12 @@ package de.coding.mirror;
 
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
@@ -47,7 +49,7 @@ public class Core
 		setDelay(delay);
 		setMaxQueueCount(maxQueueCount);
 		Log.i("Mirror", getUUID(context));
-		sendNotification(context, "uuid", getUUID(context));
+		notify(context, "uuid", getUUID(context), null);
 		//context.startService(new Intent(context, MirrorService.class));
 		context.registerReceiver(new BroadcastReceiver()
 		{
@@ -63,6 +65,73 @@ public class Core
 			}
 		}, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
 		Pushy.listen(context);
+	}
+
+	/**
+	 * Gets a ContentProvider Uri for a content.
+	 * @param content table/(id)
+	 * @return ContentProvider Uri
+	 */
+	public static Uri getContentUri(String content)
+	{
+		return Uri.parse(ContentProvider.CONTENT_URI + "/" + content);
+	}
+
+	/**
+	 * Registers a ContentObserver at a ContentProvider.
+	 * @param context context
+	 * @param observer ContentObserver to be registered
+	 */
+	public static void registerContentObserver(Context context, ContentObserver observer)
+	{
+		registerContentObserver(context, observer, ContentProvider.CONTENT_URI);
+	}
+
+	/**
+	 * Registers a ContentObserver at a ContentProvider.
+	 * @param context context
+	 * @param observer ContentObserver to be registered
+	 * @param uri uri
+	 */
+	public static void registerContentObserver(Context context, ContentObserver observer, Uri uri)
+	{
+		context.getContentResolver().registerContentObserver(uri, true, observer);
+	}
+
+	/**
+	 * Gets an int from the current row for a selected column of a cursor.
+	 * @param cursor open cursor with a valid row
+	 * @param columnName name of a column
+	 * @return value of column
+	 * @pre columnName is valid column name
+	 * @pre cursor able to read data
+	 */
+	public static int getInt(Cursor cursor, String columnName)
+	{
+		return cursor.getInt(cursor.getColumnIndex(columnName));
+	}
+
+	/**
+	 * Gets a String from the current row for a selected column of a cursor.
+	 * @param cursor open cursor with a valid row
+	 * @param columnName name of a column
+	 * @return value of column
+	 * @pre columnName is valid column name
+	 * @pre cursor able to read data
+	 */
+	public static String getString(Cursor cursor, String columnName)
+	{
+		return cursor.getString(cursor.getColumnIndex(columnName));
+	}
+
+	/**
+	 * Mirrors the databasechanges immediately to the server.
+	 * @param context context
+	 */
+	public void mirror(Context context)
+	{
+		DB db = DB.getInstance(context, getDBStructureNumber());
+		db.mirror(context, true);
 	}
 
 	/**
@@ -202,22 +271,36 @@ public class Core
 		Core.delay = delay;
 	}
 
-	private static void sendNotification(Context context, String title, String message)
+	/**
+	 * Sends a notification.
+	 * @param context context
+	 * @param title title of the notification
+	 * @param message message of the notification
+	 * @param intent intent to be called upon click
+	 */
+	public static void notify(Context context, String title, String message, Intent intent)
 	{
-		/*Intent intent = new Intent(context, Core.class);
-		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-		PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
-				PendingIntent.FLAG_ONE_SHOT);*/
 		Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 		Notification.Builder mBuilder = new Notification.Builder(context)
-						//.setSmallIcon(R.drawable.ic_setting_dark)
-						//.setContentIntent(pendingIntent)
+						.setSmallIcon(android.R.drawable.ic_dialog_info)
 						.setAutoCancel(true)
 						.setSound(defaultSoundUri)
 						.setContentTitle(title)
 						.setContentText(message);
+		if (intent != null)
+		{
+			PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_ONE_SHOT);
+			mBuilder.setContentIntent(pendingIntent);
+		}
 		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 		notificationManager.notify(0, mBuilder.build());
+
+		/*Notification notification = new Notification(android.R.drawable.ic_dialog_info, message, System.currentTimeMillis());
+		notification.defaults = Notification.DEFAULT_ALL;
+		notification.flags = Notification.FLAG_AUTO_CANCEL;
+		notification.setLatestEventInfo(context, title, message, null);
+		NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+		mNotificationManager.notify(0, notification);*/
 	}
 
 	/**

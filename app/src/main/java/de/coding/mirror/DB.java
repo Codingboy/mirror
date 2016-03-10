@@ -2,6 +2,7 @@ package de.coding.mirror;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -25,12 +26,15 @@ import java.util.Map;
 import de.coding.mirror.dbstructure.ColumnStructure;
 import de.coding.mirror.dbstructure.DBStructure;
 import de.coding.mirror.dbstructure.TableStructure;
+import de.coding.mirror.enums.ColumnKeys;
+import de.coding.mirror.enums.JSONKeys;
+import de.coding.mirror.enums.QueueKeys;
 import me.pushy.sdk.Pushy;
 import me.pushy.sdk.exceptions.PushyException;
 
 public class DB extends SQLiteOpenHelper
 {
-	private DBStructure dbStructure;
+	private Context context;
 	private static DB instance;
 	private long lastTimeMirrored;
 	private boolean isDelayed;
@@ -48,27 +52,35 @@ public class DB extends SQLiteOpenHelper
 		{
 			return instance;
 		}
-		instance = new DB(context, dbStructure);
+		instance = new DB(context);
 		return instance;
 	}
 
 	/**
 	 * Initialises the object.
 	 * @param context context
-	 * @param dbStructure DBStructure.xml as integer
 	 */
-	private DB(Context context, int dbStructure)
+	private DB(Context context)
 	{
 		super(context, "Mirror", null, 1);
-		this.dbStructure = DBStructure.getInstance(context, dbStructure);
+		this.context = context;
 		lastTimeMirrored = -1;
 		isDelayed = false;
-		isRegistered = false;
+		SharedPreferences sharedPreferences = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
+		if (sharedPreferences.contains("registered"))
+		{
+			isRegistered = sharedPreferences.getBoolean("registered", false);
+		}
+		else
+		{
+			isRegistered = false;
+		}
 	}
 
 	@Override
 	public void onCreate(SQLiteDatabase sqLiteDatabase)
 	{
+		DBStructure dbStructure = DBStructure.getInstance(context, Core.getDBStructureNumber());
 		for (String k : dbStructure.tables.keySet())
 		{
 			TableStructure tableStructure = dbStructure.tables.get(k);
@@ -88,12 +100,12 @@ public class DB extends SQLiteOpenHelper
 				}
 				stringBuilder.append(columnStructure.name+" "+columnStructure.type);
 			}
-			stringBuilder.append(", PRIMARY KEY(_id))");
+			stringBuilder.append(", PRIMARY KEY("+ColumnKeys._id.toString()+"))");
 			String sql = stringBuilder.toString();
 			Log.i("Mirror", sql);
 			sqLiteDatabase.execSQL(sql);
 		}
-		String sql = "CREATE TABLE IF NOT EXISTS _queue (id INTEGER, mode TEXT, tabel TEXT, data TEXT, timestamp INTEGER, PRIMARY KEY(id, tabel))";
+		String sql = "CREATE TABLE IF NOT EXISTS "+QueueKeys._queue.toString()+" ("+QueueKeys.id.toString()+" INTEGER, "+QueueKeys.mode.toString()+" TEXT, "+QueueKeys.tabel.toString()+" TEXT, "+QueueKeys.data.toString()+" TEXT, "+QueueKeys.timestamp.toString()+" INTEGER, PRIMARY KEY("+QueueKeys.id.toString()+", "+QueueKeys.tabel.toString()+"))";
 		Log.i("Mirror", sql);
 		sqLiteDatabase.execSQL(sql);
 	}
@@ -110,6 +122,7 @@ public class DB extends SQLiteOpenHelper
 	 */
 	protected void reset(SQLiteDatabase sqLiteDatabase)
 	{
+		DBStructure dbStructure = DBStructure.getInstance(context, Core.getDBStructureNumber());
 		for (String key : dbStructure.tables.keySet())
 		{
 			TableStructure tableStructure = dbStructure.tables.get(key);
@@ -117,7 +130,7 @@ public class DB extends SQLiteOpenHelper
 			Log.i("Mirror", sql);
 			sqLiteDatabase.execSQL(sql);
 		}
-		String sql = "DROP TABLE _queue";
+		String sql = "DROP TABLE "+QueueKeys._queue.toString();
 		Log.i("Mirror", sql);
 		sqLiteDatabase.execSQL(sql);
 		onCreate(sqLiteDatabase);
@@ -144,6 +157,7 @@ public class DB extends SQLiteOpenHelper
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
 		int count = sqLiteDatabase.delete(table, where, whereArgs);
+		DBStructure dbStructure = DBStructure.getInstance(context, Core.getDBStructureNumber());
 		String mode = dbStructure.tables.get(table).mode;
 		if (mode.equals("CS"))
 		{
@@ -162,19 +176,20 @@ public class DB extends SQLiteOpenHelper
 	protected long insert(String table, ContentValues contentValues, Context context)
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
+		DBStructure dbStructure = DBStructure.getInstance(context, Core.getDBStructureNumber());
 		String mode = dbStructure.tables.get(table).mode;
 		if (mode.equals("CS"))
 		{
 			int version = 0;
-			if (contentValues.containsKey("_version"))
+			if (contentValues.containsKey(ColumnKeys._version.toString()))
 			{
-				version = contentValues.getAsInteger("_version");
+				version = contentValues.getAsInteger(ColumnKeys._version.toString());
 			}
 			else
 			{
-				if (contentValues.containsKey("_id"))
+				if (contentValues.containsKey(ColumnKeys._id.toString()))
 				{
-					Cursor c = sqLiteDatabase.query(table, new String[]{"_version"}, "_id=?", new String[]{contentValues.getAsInteger("_id") + ""}, null, null, null);
+					Cursor c = sqLiteDatabase.query(table, new String[]{ColumnKeys._version.toString()}, ColumnKeys._id.toString()+"=?", new String[]{contentValues.getAsInteger(ColumnKeys._id.toString()) + ""}, null, null, null);
 					if (c.getCount() > 0)
 					{
 						c.moveToFirst();
@@ -184,8 +199,8 @@ public class DB extends SQLiteOpenHelper
 					c.close();
 				}
 			}
-			contentValues.put("_version", version);
-			contentValues.put("_status", 0);
+			contentValues.put(ColumnKeys._version.toString(), version);
+			contentValues.put(ColumnKeys._status.toString(), 0);
 		}
 		long id = sqLiteDatabase.insertWithOnConflict(table, null, contentValues, SQLiteDatabase.CONFLICT_REPLACE);
 		if (mode.equals("CS"))
@@ -204,17 +219,18 @@ public class DB extends SQLiteOpenHelper
 	 */
 	private void writeToQueue(long id, String mode, String table, Context context)
 	{
+		//TODO merge
 		StringBuilder stringBuilder = new StringBuilder();
 		stringBuilder.append("{");
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
-		Cursor cursor = sqLiteDatabase.query(table, null, "_id=?", new String[]{id+""}, null, null, null);
+		Cursor cursor = sqLiteDatabase.query(table, null, ColumnKeys._id.toString()+"=?", new String[]{id+""}, null, null, null);
 		cursor.moveToFirst();
 		for (int i=0; i<cursor.getCount(); i++)
 		{
 			int statusFix = 0;
 			for (int j=0; j<cursor.getColumnCount(); j++)
 			{
-				if (cursor.getColumnName(j).equals("_status"))
+				if (cursor.getColumnName(j).equals(ColumnKeys._status.toString()))
 				{
 					statusFix = 1;
 					continue;
@@ -245,12 +261,12 @@ public class DB extends SQLiteOpenHelper
 		stringBuilder.append("}");
 		String json = stringBuilder.toString();
 		ContentValues cv = new ContentValues();
-		cv.put("id", id);
-		cv.put("mode", mode);
-		cv.put("tabel", table);
-		cv.put("data", json);
-		cv.put("timestamp", System.currentTimeMillis());
-		sqLiteDatabase.insertWithOnConflict("_queue", null, cv, SQLiteDatabase.CONFLICT_REPLACE);
+		cv.put(QueueKeys.id.toString(), id);
+		cv.put(QueueKeys.mode.toString(), mode);
+		cv.put(QueueKeys.tabel.toString(), table);
+		cv.put(QueueKeys.data.toString(), json);
+		cv.put(QueueKeys.timestamp.toString(), System.currentTimeMillis());
+		sqLiteDatabase.insertWithOnConflict(QueueKeys._queue.toString(), null, cv, SQLiteDatabase.CONFLICT_REPLACE);
 		Log.d("Mirror", "mirroring due to db interaction");
 		new MirrorTask(context).execute(new Void[]{});
 	}
@@ -327,6 +343,10 @@ public class DB extends SQLiteOpenHelper
 				Log.d("Mirror", registrationId + "");
 				Core.setPushyID(registrationId);
 				isRegistered = NetworkCommunication.register(context);
+				SharedPreferences sharedPreferences = context.getSharedPreferences("Mirror", Context.MODE_PRIVATE);
+				SharedPreferences.Editor editor = sharedPreferences.edit();
+				editor.putBoolean("registered", isRegistered);
+				editor.apply();
 				mirror(context, false);
 			}
 			catch (PushyException e)
@@ -364,19 +384,20 @@ public class DB extends SQLiteOpenHelper
 	protected int update(String table, ContentValues contentValues, String where, String[] whereArgs, Context context)
 	{
 		SQLiteDatabase sqLiteDatabase = getWritableDatabase();
+		DBStructure dbStructure = DBStructure.getInstance(context, Core.getDBStructureNumber());
 		String mode = dbStructure.tables.get(table).mode;
 		if (mode.equals("CS"))
 		{
 			int version = 0;
-			if (contentValues.containsKey("_version"))
+			if (contentValues.containsKey(ColumnKeys._version.toString()))
 			{
-				version = contentValues.getAsInteger("_version");
+				version = contentValues.getAsInteger(ColumnKeys._version.toString());
 			}
 			else
 			{
-				if (contentValues.containsKey("_id"))
+				if (contentValues.containsKey(ColumnKeys._id.toString()))
 				{
-					Cursor c = sqLiteDatabase.query(table, new String[]{"_version"}, "_id=?", new String[]{contentValues.getAsInteger("_id") + ""}, null, null, null);
+					Cursor c = sqLiteDatabase.query(table, new String[]{ColumnKeys._version.toString()}, ColumnKeys._id.toString()+"=?", new String[]{contentValues.getAsInteger(ColumnKeys._id.toString()) + ""}, null, null, null);
 					if (c.getCount() > 0)
 					{
 						c.moveToFirst();
@@ -386,13 +407,13 @@ public class DB extends SQLiteOpenHelper
 					c.close();
 				}
 			}
-			contentValues.put("_version", version);
-			contentValues.put("_status", 0);
+			contentValues.put(ColumnKeys._version.toString(), version);
+			contentValues.put(ColumnKeys._status.toString(), 0);
 		}
 		int count = sqLiteDatabase.updateWithOnConflict(table, contentValues, where, whereArgs, SQLiteDatabase.CONFLICT_REPLACE);
 		if (mode.equals("CS"))
 		{
-			writeToQueue(contentValues.getAsInteger("_id"), "update", table, context);
+			writeToQueue(contentValues.getAsInteger(ColumnKeys._id.toString()), "update", table, context);
 		}
 		return count;
 	}
@@ -443,15 +464,15 @@ public class DB extends SQLiteOpenHelper
 			{
 				Log.e("Mirror", "error while sleeping", e);
 			}
-			Log.d("Mirror", "mirror due to delay");
-			mirror(context, true);
-			isDelayed = false;
 			return null;
 		}
 
 		@Override
 		protected void onPostExecute(Void param)
 		{
+			Log.d("Mirror", "mirror due to delay");
+			mirror(context, true);
+			isDelayed = false;
 		}
 
 		@Override
@@ -504,18 +525,18 @@ public class DB extends SQLiteOpenHelper
 		String prevTable = "";
 		int maxCount = Core.getMaxQueueCount();
 		Map<String, List<Integer>> toBeRemoved = new HashMap<>();
-		Cursor cursor = sqLiteDatabase.query("_queue", null, null, null, null, null, "timestamp ASC");
+		Cursor cursor = sqLiteDatabase.query(QueueKeys._queue.toString(), null, null, null, null, null, "timestamp ASC");
 		for (int i=0; i<Math.min(maxCount, cursor.getCount()); i++)
 		{
 			cursor.moveToNext();
-			String mode = cursor.getString(cursor.getColumnIndex("mode"));
-			String table = cursor.getString(cursor.getColumnIndex("tabel"));
-			String data = cursor.getString(cursor.getColumnIndex("data"));
-			int id = cursor.getInt(cursor.getColumnIndex("id"));
+			String mode = Core.getString(cursor, QueueKeys.mode.toString());
+			String table = Core.getString(cursor, QueueKeys.tabel.toString());
+			String data = Core.getString(cursor, QueueKeys.data.toString());
+			int id = Core.getInt(cursor, QueueKeys.id.toString());
 			List<Integer> removeIDs;
-			if (toBeRemoved.containsKey("table"))
+			if (toBeRemoved.containsKey(table))
 			{
-				removeIDs = toBeRemoved.get("table");
+				removeIDs = toBeRemoved.get(table);
 			}
 			else
 			{
@@ -566,22 +587,22 @@ public class DB extends SQLiteOpenHelper
 				OutputStream out = new ByteArrayOutputStream();
 				JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));
 				writer.beginObject();
-				writer.name("uuid").value(Core.getUUID(context));
-				writer.name("content");
+				writer.name(JSONKeys.uuid.toString()).value(Core.getUUID(context));
+				writer.name(JSONKeys.content.toString());
 				writer.beginArray();
 				for (Map<String, List<Map<String, List<String>>>> map : content)
 				{
 					writer.beginObject();
 					List<Map<String, List<String>>> list;
-					if (map.containsKey("insert"))
+					if (map.containsKey(JSONKeys.insert.toString()))
 					{
-						writer.name("insert");
-						list = map.get("insert");
+						writer.name(JSONKeys.insert.toString());
+						list = map.get(JSONKeys.insert.toString());
 					}
 					else
 					{
-						writer.name("delete");
-						list = map.get("delete");
+						writer.name(JSONKeys.delete.toString());
+						list = map.get(JSONKeys.delete.toString());
 					}
 					writer.beginArray();
 					for (Map<String, List<String>> map1 : list)
@@ -623,17 +644,16 @@ public class DB extends SQLiteOpenHelper
 				writer.endObject();
 				writer.close();
 				String json = out.toString();
-				String host = Core.getHost();
 				NetworkCommunication.send(json);
 				for (String table : toBeRemoved.keySet())
 				{
 					List<Integer> ids = toBeRemoved.get(table);
 					for (int id : ids)
 					{
-						sqLiteDatabase.delete("_queue", "id=? AND tabel=?", new String[]{id + "", table});
+						sqLiteDatabase.delete(QueueKeys._queue.toString(), QueueKeys.id.toString()+"=? AND "+QueueKeys.tabel.toString()+"=?", new String[]{id + "", table});
 						ContentValues cv = new ContentValues();
-						cv.put("_status", 1);
-						sqLiteDatabase.update(table, cv, "_id=?", new String[]{id + ""});
+						cv.put(ColumnKeys._status.toString(), 1);
+						sqLiteDatabase.update(table, cv, ColumnKeys._id.toString()+"=?", new String[]{id + ""});
 						context.getContentResolver().notifyChange(Uri.parse(ContentProvider.CONTENT_URI + "/" + table + "/" + id), null);
 					}
 				}

@@ -1,8 +1,6 @@
 send
 {
-	"app": "de.coding.track",
-	"hash": "42424242",
-	"uuid": "0x123657412534",
+	"uuid": "42",
 	"content": [
 		{
 			"insert": [
@@ -10,7 +8,7 @@ send
 					"SETTINGSW": [
 						{
 							"_id": 1,
-							"_version": 42
+							"_version": 0
 							"REFRESHRATE": 1000
 						}
 					]
@@ -21,11 +19,11 @@ send
 			"delete": [
 				{
 					"SETTINGSW": [
-							{
-								"_id": 1,
-								"_version": 42
-							}
-						]
+						{
+							"_id": 1,
+							"_version": 0
+						}
+					]
 				}
 			]
 		}
@@ -34,6 +32,7 @@ send
 
 receive
 {
+	"uuid": "42",
 	"content": [
 		{
 			"insert": [
@@ -41,7 +40,7 @@ receive
 					"SETTINGSW": [
 						{
 							"_id": 1,
-							"_version": 42
+							"_version": 0
 							"REFRESHRATE": 1000
 						}
 					]
@@ -54,24 +53,24 @@ receive
 					"SETTINGSW": [
 						{
 							"_id": 1,
-							"_version": 42
+							"_version": 0
 						}
 					]
 				}
 			]
-		},
+		}
 	]
 }
 
 ack
 {
-	"uuid": "0x123657412534",
+	"uuid": "42",
 	"content": [
 		{
 			"SETTINGSW": [
 				{
 					"_id": 1,
-					"_version": 42
+					"_version": 0
 				}
 			]
 		}

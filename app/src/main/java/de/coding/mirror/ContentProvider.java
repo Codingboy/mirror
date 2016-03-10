@@ -1,8 +1,11 @@
 package de.coding.mirror;
+
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
+
+import de.coding.mirror.enums.ColumnKeys;
 
 public class ContentProvider extends android.content.ContentProvider
 {
@@ -13,6 +16,7 @@ public class ContentProvider extends android.content.ContentProvider
 	@Override
 	public Uri insert(Uri uri, ContentValues contentValues)
 	{
+		//TODO change notify format, add insert, _id
 		String table = uri.getPath().substring(1);
 		Log.i("Mirror", "insert into "+table);
 		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber());
@@ -30,7 +34,7 @@ public class ContentProvider extends android.content.ContentProvider
 			String[] arr = uri.getPath().substring(1).split("/");
 			table = arr[0];
 			String id = arr[1];
-			where = "_id = ?";
+			where = ColumnKeys._id.toString()+"=?";
 			whereArgs = new String[]{id};
 		}
 		else
@@ -53,7 +57,7 @@ public class ContentProvider extends android.content.ContentProvider
 			String[] arr = uri.getPath().substring(1).split("/");
 			table = arr[0];
 			String id = arr[1];
-			where = "_id = ?";
+			where = ColumnKeys._id.toString()+"=?";
 			whereArgs = new String[]{id};
 		}
 		else
@@ -76,7 +80,7 @@ public class ContentProvider extends android.content.ContentProvider
 			String[] arr = uri.getPath().substring(1).split("/");
 			table = arr[0];
 			String id = arr[1];
-			selection = "_id = ?";
+			selection = ColumnKeys._id.toString()+"=?";
 			selectionArgs = new String[]{id};//TODO merge
 		}
 		else
