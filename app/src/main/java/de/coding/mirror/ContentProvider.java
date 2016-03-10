@@ -18,7 +18,6 @@ public class ContentProvider extends android.content.ContentProvider
 	{
 		//TODO change notify format, add insert, _id
 		String table = uri.getPath().substring(1);
-		Log.i("Mirror", "insert into "+table);
 		DB db = DB.getInstance(getContext(), Core.getDBStructureNumber());
 		long id = db.insert(table, contentValues, getContext());
 		getContext().getContentResolver().notifyChange(Uri.parse(uri.toString() + "/" + id), null);

@@ -90,7 +90,7 @@ public class NetworkCommunication
 	 */
 	protected static int send(String json) throws IOException
 	{
-		Log.i("Mirror", "post: " + json);
+		Log.i("Mirror", "send: " + json);
 		URL url = new URL(Core.getHost()+"send");
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod("POST");
@@ -131,12 +131,11 @@ public class NetworkCommunication
 		JsonWriter writer = new JsonWriter(new OutputStreamWriter(out, "UTF-8"));
 		writer.beginObject();
 		writer.name("uuid").value(Core.getUUID(context));
-		writer.name("pushyID").value(Core.getPushyID());
 		writer.endObject();
 		writer.flush();
 		writer.close();
 		String json = out.toString();
-		Log.i("Mirror", "get: " + json);
+		Log.i("Mirror", "receive: " + json);
 		osw.write(json);
 		osw.flush();
 		osw.close();
